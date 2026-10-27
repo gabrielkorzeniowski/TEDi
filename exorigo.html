@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zgłoszenie awarii drukarki fiskalnej</title>
+  <style>
+    body {
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      font: 16px/1.5 system-ui, sans-serif;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: 600;
+    }
+    input, textarea, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: .65rem;
+      font: inherit;
+    }
+    textarea {
+      min-height: 5rem;
+    }
+    #wynik {
+      min-height: 16rem;
+    }
+    button {
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Zgłoszenie awarii drukarki fiskalnej</h1>
+
+  <label for="dane">Dane filii (wklej wiersz z tabulatorami)</label>
+  <textarea id="dane" placeholder="Nr filii&#9;Ulica&#9;Kod pocztowy&#9;Miasto&#9;Kraj&#9;Województwo&#9;Województwo&#9;Telefon"></textarea>
+
+  <label for="opis">Opis problemu</label>
+  <textarea id="opis" placeholder="Wpisz opis problemu"></textarea>
+
+  <label for="sn">Numer seryjny</label>
+  <input id="sn" type="text" placeholder="Wpisz numer seryjny">
+
+  <label for="tytul">Tytuł maila</label>
+  <input id="tytul" type="text" readonly>
+
+  <label for="wynik">Treść maila</label>
+  <textarea id="wynik" readonly></textarea>
+
+  <button type="button" id="kopiuj">Generuj i kopiuj tytuł oraz treść</button>
+  <p id="status" aria-live="polite"></p>
+
+  <script>
+    const pola = {
+      dane: document.querySelector("#dane"),
+      opis: document.querySelector("#opis"),
+      sn: document.querySelector("#sn"),
+      tytul: document.querySelector("#tytul"),
+      wynik: document.querySelector("#wynik"),
+      status: document.querySelector("#status")
+    };
+
+    function generuj() {
+      const dane = pola.dane.value.split("\t");
+
+      const nrFilii = (dane[0] || "").trim();
+      const ulica = (dane[1] || "").trim();
+      const kod = (dane[2] || "").trim();
+      const miasto = (dane[3] || "").trim();
+
+      // Usuwa opcjonalny prefiks 0048 lub +48.
+      const telefon = (dane[7] || "")
+        .trim()
+        .replace(/^(?:0048|\+48)\s*/, "")
+        .trim();
+
+      pola.tytul.value = `TEDi ${nrFilii} ${miasto} - awaria DF`;
+      pola.wynik.value =
+`Dzień dobry,
+
+proszę o wizytę technika - ${pola.opis.value.trim()}
+
+TEDi ${nrFilii}
+${ulica}
+${miasto} ${kod}
+
+SN: ${pola.sn.value.trim()}
+
+Tel: ${telefon}`;
+    }
+
+    pola.dane.addEventListener("input", generuj);
+    pola.opis.addEventListener("input", generuj);
+    pola.sn.addEventListener("input", generuj);
+
+    document.querySelector("#kopiuj").addEventListener("click", async () => {
+      generuj();
+      const tekst = `Temat: ${pola.tytul.value}\n\n${pola.wynik.value}`;
+
+      try {
+        await navigator.clipboard.writeText(tekst);
+        pola.status.textContent = "Skopiowano tytuł i treść do schowka.";
+      } catch {
+        pola.wynik.focus();
+        pola.wynik.select();
+        pola.status.textContent = "Nie udało się skopiować automatycznie. Zaznacz i skopiuj tekst ręcznie.";
+      }
+    });
+  </script>
+</body>
+</html>
